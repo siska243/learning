@@ -1,0 +1,415 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+//Table User
+model User {
+  id            Int             @id @default(autoincrement())
+  email         String          @unique @db.VarChar(255)
+  lastName      String          @map("last_name") @db.VarChar(255)
+  firstName     String          @map("first_name") @db.VarChar(255)
+  password      String          @db.VarChar(255)
+  isActive      Boolean         @default(false) @map("is_active")
+  student       Student?
+  avatar        String?
+  trainer       Trainer?
+  manager       Company?
+  slug          String          @unique
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime?       @updatedAt
+  deletedAt     DateTime?
+  NoteCourse    NoteCourse[]
+  NotesTraining NotesTraining[]
+  role          Role?           @relation(fields: [roleId], references: [id])
+  roleId        Int?
+  sexe          Genre?          @relation(fields: [sexeId], references: [id])
+  sexeId        Int?
+}
+
+model Genre {
+  id        Int     @id @default(autoincrement())
+  title     String
+  shortName String
+  avatar    String?
+  User      User[]
+}
+
+model Role {
+  id        Int       @id @default(autoincrement())
+  title     String    @db.VarChar(255)
+  createdAt DateTime  @default(now())
+  updateAt  DateTime  @updatedAt
+  roles     Json
+  delatedAt DateTime?
+  User      User[]
+  slug      String    @unique
+}
+
+//Table student
+
+model Student {
+  id                Int                 @id @default(autoincrement())
+  user              User                @relation(fields: [userId], references: [id])
+  userId            Int                 @unique @map("userId")
+  AnswerQuizStudent AnswerQuizStudent[]
+  Follow            Follow[]
+
+  @@index([userId])
+}
+
+// Table formateur
+
+model Trainer {
+  id              Int               @id @default(autoincrement())
+  user            User              @relation(fields: [userId], references: [id])
+  userId          Int               @unique @map("userId")
+  Course          Course[]
+  Follow          Follow[]
+  TrainerTraining TrainerTraining[]
+
+  @@index([userId])
+}
+
+model TrainerTraining {
+  id         Int      @id @default(autoincrement())
+  trainer    Trainer  @relation(fields: [trainerId], references: [id])
+  trainerId  Int
+  training   Training @relation(fields: [trainingId], references: [id])
+  trainingId Int
+
+  @@index([trainerId, trainingId])
+}
+
+//Table company
+
+model Company {
+  id        Int     @id @default(autoincrement())
+  name      String?
+  manager   User    @relation(fields: [managerId], references: [id])
+  managerId Int     @unique
+  email     String?
+  phone     String?
+  logo      String?
+  adresse   String
+}
+
+//Table formations
+
+model Training {
+  id               Int                     @id @default(autoincrement())
+  slug             String
+  title            String
+  required         Json?
+  hoursPerDay      String?                 @db.VarChar(10)
+  description      String                  @db.Text()
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
+  isActive         Boolean                 @default(false)
+  categories       SubCategoryOnTraining[]
+  level            Level                   @relation(fields: [levelId], references: [id])
+  levelId          Int
+  startAt          DateTime
+  endAt            DateTime
+  numberDay        Int                     @default(1)
+  Quiz             Quiz[]
+  NotesTraining    NotesTraining[]
+  adresse          String?
+  referenceAdresse String?
+  latitude         Float?
+  longitude        Float?
+  TypeTraining     TypeTraining[]
+  picture          String                  @db.Text()
+  Langage          Langage[]
+  City             City[]
+  TrainerTraining  TrainerTraining[]
+
+  @@index([levelId])
+}
+
+//Type de formation
+model TypeTraining {
+  id          Int      @id @default(autoincrement())
+  title       String
+  descriprion String
+  slug        String
+  icon        String?
+  color       String?
+  isActive    Boolean  @default(false)
+  training    Training @relation(fields: [trainingId], references: [id])
+  trainingId  Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([trainingId])
+}
+
+model TrainingCategory {
+  id          Int                   @id @default(autoincrement())
+  title       String                @db.VarChar(255)
+  slug        String                @db.VarChar(255)
+  isActive    Boolean               @default(false)
+  subCategory SubTrainingCategory[]
+}
+
+model SubTrainingCategory {
+  id                 Int                     @id @default(autoincrement())
+  title              String                  @db.VarChar(255)
+  slug               String                  @db.VarChar(255)
+  isActive           Boolean                 @default(false)
+  trainig            SubCategoryOnTraining[]
+  categorie          TrainingCategory        @relation(fields: [trainingCategoryId], references: [id])
+  trainingCategoryId Int
+
+  @@index([trainingCategoryId])
+}
+
+//table many to many
+model SubCategoryOnTraining {
+  id                    Int                  @id @default(autoincrement())
+  training              Training             @relation(fields: [trainingId], references: [id])
+  trainingId            Int
+  SubTrainingCategory   SubTrainingCategory? @relation(fields: [subTrainingCategoryId], references: [id])
+  subTrainingCategoryId Int
+
+  @@index([trainingId, subTrainingCategoryId])
+}
+
+//Table niveau formation 
+model Level {
+  id          Int        @id @default(autoincrement())
+  class       String?    @db.VarChar(25)
+  color       String?    @db.VarChar(20)
+  icon        String?    @db.VarChar(20)
+  title       String     @db.VarChar(255)
+  slug        String
+  description String?    @db.Text()
+  isActive    Boolean    @default(false)
+  Training    Training[]
+  Course      Course[]
+}
+
+//Table cours
+model Course {
+  id             Int              @id @default(autoincrement())
+  title          String
+  slug           String           @unique
+  description    String           @db.Text()
+  files          Json?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  trainingId     Int
+  training       Trainer          @relation(fields: [trainingId], references: [id])
+  levelId        Int
+  level          Level            @relation(fields: [levelId], references: [id])
+  isPublish      Boolean          @default(false)
+  isArchived     Boolean          @default(false)
+  isAchivedAt    DateTime?
+  isPublishAt    DateTime?
+  PlanningCourse PlanningCourse[]
+  NoteCourse     NoteCourse[]
+
+  @@index([trainingId, levelId])
+}
+
+model NoteCourse {
+  id          Int      @id @default(autoincrement())
+  course      Course   @relation(fields: [courseId], references: [id])
+  courseId    Int
+  user        User     @relation(fields: [userId], references: [id])
+  userId      Int
+  notes       Float
+  createdAt   DateTime @default(now())
+  commentaire String?  @db.Text()
+
+  @@unique([courseId, userId])
+  @@index([courseId, userId])
+}
+
+model NotesTraining {
+  id          Int      @id @default(autoincrement())
+  training    Training @relation(fields: [trainingId], references: [id])
+  trainingId  Int
+  user        User     @relation(fields: [userId], references: [id])
+  userId      Int
+  notes       Float
+  commentaire String?  @db.Text()
+  created_at  DateTime @default(now())
+
+  @@unique([trainingId, userId])
+  @@index([trainingId, userId])
+}
+
+//Table planning Formation
+model PlanningCourse {
+  id       Int       @id @default(autoincrement())
+  course   Course    @relation(fields: [courseId], references: [id])
+  courseId Int
+  startAt  DateTime?
+  endAt    DateTime?
+
+  @@index([courseId])
+}
+
+// Table questionnaire
+model Quiz {
+  id                Int                 @id @default(autoincrement())
+  quiz              String              @db.Text()
+  multipleChoices   Boolean             @default(false)
+  isPublish         Boolean             @default(false)
+  answers           Json
+  training          Training            @relation(fields: [trainingId], references: [id])
+  trainingId        Int
+  isPublishAt       DateTime?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  required          Boolean             @default(false)
+  AnswerQuizStudent AnswerQuizStudent[]
+
+  @@index([trainingId])
+}
+
+//Table reponse question
+model AnswerQuizStudent {
+  id        Int      @id @default(autoincrement())
+  quiz      Quiz     @relation(fields: [quizId], references: [id])
+  quizId    Int
+  answers   String   @db.Text
+  isValide  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  student   Student  @relation(fields: [studentId], references: [id])
+  studentId Int      @map(name: "student_id")
+
+  @@index([studentId, quizId])
+}
+
+//Table langues
+model Langage {
+  id         Int      @id @default(autoincrement())
+  short      String?  @db.VarChar(15)
+  name       String
+  createdAt  DateTime @default(now())
+  training   Training @relation(fields: [trainingId], references: [id])
+  trainingId Int
+
+  @@index([trainingId])
+}
+
+//Table forum
+
+//status forum response
+
+//table abonnement
+model Abonnement {
+  id    Int    @id @default(autoincrement())
+  name  String
+  slug  String @unique
+  price Float
+}
+
+//table type abonnement
+
+model TypeAbonnement {
+  id            Int    @id @default(autoincrement())
+  name          String
+  slug          String @unique
+  price         Float
+  duration      String
+  durationFront String
+}
+
+model TypeAbonnementAvantage {
+  id Int @id @default(autoincrement())
+}
+
+//table paiement formation
+
+//reservation 
+
+//chat
+
+//article
+
+//exercice formateur
+
+//exercice student
+
+//mode de paiement
+
+//currency
+
+//pays
+
+model Country {
+  id        Int      @id @default(autoincrement())
+  code      String?  @unique
+  name      String   @unique
+  shortName String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  isActive  Boolean  @default(false)
+  flag      String?
+  icon      String?
+
+  City City[]
+}
+
+//villes
+model City {
+  id         Int        @id @default(autoincrement())
+  zip        String?
+  name       String
+  slug       String
+  isActive   Boolean    @default(false)
+  training   Training   @relation(fields: [trainingId], references: [id])
+  trainingId Int
+  country    Country    @relation(fields: [countryId], references: [id])
+  countryId  Int
+  Township   Township[]
+
+  @@index([countryId, trainingId])
+}
+
+model Township {
+  id        Int      @id @default(autoincrement())
+  slug      String
+  name      String
+  isActive  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  city      City     @relation(fields: [cityId], references: [id])
+  cityId    Int
+
+  @@unique([slug])
+  @@index([cityId])
+}
+
+//whitelist
+
+//follow
+model Follow {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  student   Student  @relation(fields: [studentId], references: [id])
+  studentId Int
+  trainer   Trainer  @relation(fields: [trainerId], references: [id])
+  trainerId Int
+
+  @@unique([studentId, trainerId])
+  @@index([trainerId, studentId])
+}
+
+//newsletters
+
+//certification formation
+
+//model certification
